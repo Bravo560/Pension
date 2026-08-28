@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de Pensión Ley 73</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<div class="contenedor">
+  <div class="tarjeta">
+    <span class="badge">Ley 73 IMSS</span>
+    <h1>Calculadora de Pensión</h1>
+    <p class="subtitulo">Proyecta tu pensión de Vejez o Cesantía en Edad Avanzada con tus datos reales del IMSS.</p>
+
+    <p class="precio">$<span id="precio">199</span> <span style="font-size:1rem; color:#6b7280; font-weight:400;">MXN</span></p>
+    <p style="color:#6b7280; margin-top:-8px;">Acceso por 15 días · Recibes tu usuario y contraseña por correo al confirmarse el pago.</p>
+
+    <div id="error" class="error" style="display:none;"></div>
+
+    <label for="email">Tu correo electrónico</label>
+    <input type="email" id="email" placeholder="tucorreo@ejemplo.com" required>
+
+    <button id="btnPagar">Suscribirme y pagar</button>
+  </div>
+
+  <div class="tarjeta">
+    <h2>¿Ya tienes una cuenta?</h2>
+    <a class="boton" style="background:#fff; color:#0a5c36; border:1px solid #0a5c36;" href="/login.html">Iniciar sesión</a>
+  </div>
+
+  <p class="pie">Pago procesado de forma segura por Mercado Pago. No almacenamos tus datos de tarjeta.</p>
+</div>
+
+<script>
+const btn = document.getElementById('btnPagar');
+const errorBox = document.getElementById('error');
+
+function mostrarError(msg) {
+  errorBox.textContent = msg;
+  errorBox.style.display = 'block';
+}
+
+const params = new URLSearchParams(location.search);
+if (params.get('pago') === 'fallido') mostrarError('El pago no se completó. Intenta de nuevo.');
+if (params.get('pago') === 'pendiente') mostrarError('Tu pago está pendiente de confirmación. Te avisaremos por correo en cuanto se apruebe.');
+
+btn.addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  errorBox.style.display = 'none';
+  if (!email || !email.includes('@')) {
+    mostrarError('Escribe un correo válido.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Preparando pago...';
+  try {
+    const res = await fetch('/.netlify/functions/create-preference', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo iniciar el pago.');
+    window.location.href = data.init_point;
+  } catch (err) {
+    mostrarError(err.message);
+    btn.disabled = false;
+    btn.textContent = 'Suscribirme y pagar';
+  }
+});
+</script>
+</body>
+</html>
