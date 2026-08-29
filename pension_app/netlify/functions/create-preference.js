@@ -60,12 +60,21 @@ exports.handler = async (event) => {
       },
     });
 
+    // Con credenciales de PRUEBA (Access Token que empieza con TEST-), Mercado Pago devuelve
+    // dos URLs distintas: "init_point" (checkout de producción) y "sandbox_init_point"
+    // (checkout de pruebas). Si usamos init_point mientras probamos, Mercado Pago rechaza el
+    // pago con el error "una de las partes es de prueba" — por eso preferimos sandbox_init_point
+    // cuando existe. Con credenciales de producción, Mercado Pago no manda un sandbox_init_point
+    // utilizable, así que ahí se usa init_point normalmente.
+    const checkoutUrl = result.sandbox_init_point || result.init_point;
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ init_point: result.init_point, preference_id: result.id }),
+      body: JSON.stringify({ init_point: checkoutUrl, preference_id: result.id }),
     };
   } catch (err) {
     console.error('create-preference error:', err);
     return { statusCode: 500, body: JSON.stringify({ error: 'No se pudo crear la preferencia de pago.' }) };
   }
 };
+"Fix sandbox checkout URL"
