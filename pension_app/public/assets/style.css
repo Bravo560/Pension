@@ -78,3 +78,23 @@ button:hover, .boton:hover { opacity: 0.92; }
   font-weight: 600;
 }
 .pie { text-align: center; color: var(--gris); font-size: 0.8rem; margin-top: 30px; }
+.subseccion {
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 16px 18px 20px;
+  margin: 18px 0;
+}
+.nota { color: var(--gris); font-size: 0.82rem; margin: 4px 0 0; }
+.aviso {
+  background: #fff7e6;
+  color: #92400e;
+  border: 1px solid #fde3ad;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+.checkbox-fila { display: flex; align-items: flex-start; gap: 10px; margin-top: 0; }
+.checkbox-fila input[type="checkbox"] { width: auto; margin-top: 4px; }
+.checkbox-label { display: inline; font-weight: 600; font-size: 0.9rem; margin: 0; }

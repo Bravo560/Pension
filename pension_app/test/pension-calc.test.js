@@ -5,7 +5,7 @@
  * Ejecutar con: npm test
  */
 const assert = require('assert');
-const { calcularPension } = require('../lib/pension-calc');
+const { calcularPension, simularModalidad40 } = require('../lib/pension-calc');
 
 function aprox(actual, esperado, tolerancia = 0.01) {
   assert.ok(
@@ -47,5 +47,54 @@ const r2 = calcularPension({
 });
 aprox(r2.asignaciones.ayudaHijos, r2.cuantiaAnualPension * 0.10 * 2);
 assert.ok(r2.asignaciones.ayudaHijos > 0, 'La ayuda por hijos debe ser mayor a cero cuando numHijos > 0');
+
+// --- Modalidad 40 ---
+
+// Caso 1: cotiza exactamente 250 semanas en M40 -> el salario promedio proyectado debe ser
+// EXACTAMENTE el salario de M40 (ajustado al tope de 25 UMA si aplica), sin mezcla.
+const m40Completo = simularModalidad40({
+  semanasCotizadas: 1726,
+  salarioDiarioPromedio: 911.06,
+  umaVigente: 117.31,
+  tieneEsposa: true,
+  numHijos: 0,
+  numPadres: 0,
+  ramo: 'cesantia',
+  edad: 60,
+  salarioDiarioM40: 117.31 * 25, // tope de 25 UMA
+  semanasM40: 250,
+});
+aprox(m40Completo.salarioPromedioProyectado, 117.31 * 25);
+aprox(m40Completo.semanasCotizadasProyectadas, 1726 + 250, 0.001);
+assert.ok(m40Completo.pension.mensual.pensionFinal > 19048.69, 'La pensión proyectada con Modalidad 40 al tope debe ser mayor a la actual.');
+assert.strictEqual(m40Completo.advertencias.length, 0, 'No debe haber advertencias cuando el salario está dentro del rango y cubre las 250 semanas.');
+
+// Caso 2: cotiza solo 100 semanas -> el promedio proyectado debe ser una mezcla ponderada
+// (100 semanas al salario de M40 + 150 semanas al salario promedio actual) / 250.
+const m40Parcial = simularModalidad40({
+  semanasCotizadas: 1726,
+  salarioDiarioPromedio: 911.06,
+  umaVigente: 117.31,
+  tieneEsposa: true,
+  ramo: 'cesantia',
+  edad: 60,
+  salarioDiarioM40: 2000,
+  semanasM40: 100,
+});
+const mezclaEsperada = (100 * 2000 + 150 * 911.06) / 250;
+aprox(m40Parcial.salarioPromedioProyectado, mezclaEsperada);
+assert.ok(m40Parcial.advertencias.length > 0, 'Debe advertir que se asumió el salario actual para las semanas restantes de la ventana.');
+
+// Caso 3: salario capturado por encima del tope de 25 UMA -> debe ajustarse al tope y advertir.
+const m40SobreTope = simularModalidad40({
+  semanasCotizadas: 1726,
+  salarioDiarioPromedio: 911.06,
+  umaVigente: 117.31,
+  ramo: 'vejez',
+  salarioDiarioM40: 999999,
+  semanasM40: 250,
+});
+aprox(m40SobreTope.salarioDiarioM40Ajustado, 117.31 * 25);
+assert.ok(m40SobreTope.advertencias.some((a) => a.includes('tope legal')), 'Debe advertir que se ajustó al tope de 25 UMA.');
 
 console.log('Todas las pruebas pasaron correctamente. ✔');

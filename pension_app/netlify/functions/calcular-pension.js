@@ -8,7 +8,7 @@
  */
 const jwt = require('jsonwebtoken');
 const { getSupabase } = require('../../lib/db');
-const { calcularPension } = require('../../lib/pension-calc');
+const { calcularPension, simularModalidad40 } = require('../../lib/pension-calc');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -54,8 +54,25 @@ exports.handler = async (event) => {
     // (por ejemplo, para simular años futuros con un valor distinto).
     const umaVigente = input.umaVigente || Number(process.env.UMA_VIGENTE || '117.31');
     const resultado = calcularPension({ ...input, umaVigente });
-    await supabase.from('calculations').insert({ subscriber_id: subscriber.id, input, resultado });
-    return { statusCode: 200, body: JSON.stringify(resultado) };
+
+    // Simulación opcional de Modalidad 40: el frontend la manda solo si la persona activó esa
+    // opción y llenó los dos campos. Un error aquí (ej. datos incompletos) no debe tumbar el
+    // cálculo base, así que se maneja aparte.
+    let comparacionModalidad40 = null;
+    if (input.modalidad40 && input.modalidad40.salarioDiarioM40 && input.modalidad40.semanasM40) {
+      const tasaM40 = input.modalidad40.tasaM40 || Number(process.env.MODALIDAD_40_TASA || '0.14438');
+      comparacionModalidad40 = simularModalidad40({
+        ...input,
+        umaVigente,
+        salarioDiarioM40: input.modalidad40.salarioDiarioM40,
+        semanasM40: input.modalidad40.semanasM40,
+        tasaM40,
+      });
+    }
+
+    const respuesta = { ...resultado, comparacionModalidad40 };
+    await supabase.from('calculations').insert({ subscriber_id: subscriber.id, input, resultado: respuesta });
+    return { statusCode: 200, body: JSON.stringify(respuesta) };
   } catch (err) {
     return { statusCode: 400, body: JSON.stringify({ error: err.message }) };
   }

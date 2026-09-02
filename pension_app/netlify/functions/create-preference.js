@@ -77,4 +77,3 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: 'No se pudo crear la preferencia de pago.' }) };
   }
 };
-"Fix sandbox checkout URL"

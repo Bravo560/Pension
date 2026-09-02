@@ -75,6 +75,18 @@ const PCT_HIJO = 0.10; // por cada hijo menor de 16 años, o hasta 25 si estudia
 const PCT_PADRES = 0.20; // solo a falta de esposa(o) e hijos
 const PCT_SOLEDAD = 0.15; // solo si no hay esposa(o), hijos ni padres asignados
 
+// --- Modalidad 40 (Continuación Voluntaria en el Régimen Obligatorio) ---
+// El salario diario con el que alguien se da de alta en Modalidad 40 debe estar entre 1 y 25
+// veces la UMA vigente (tope fijado por la ley del IMSS).
+const MODALIDAD_40_UMA_MIN = 1;
+const MODALIDAD_40_UMA_MAX = 25;
+// Tasa de cuota mensual vigente en 2026 (crece de forma gradual cada año desde 11.166% en 2023
+// hasta 18.8% en 2030, por la reforma a la Ley del Seguro Social). ACTUALIZAR CADA ENERO junto
+// con la UMA — puede sobreescribirse por variable de entorno MODALIDAD_40_TASA o por parámetro.
+const MODALIDAD_40_TASA_DEFAULT = 0.14438;
+const MODALIDAD_40_DIAS_MES = 30.4; // aproximación de días/mes que usa el IMSS para cuotas
+const MODALIDAD_40_VENTANA_SEMANAS = 250; // misma ventana que "salario promedio de últimas 250 semanas"
+
 /** Búsqueda tipo VLOOKUP aproximado: la fila cuyo "desde" es el mayor <= valor. */
 function buscarAproximado(tabla, valor, colDesde = 0) {
   let fila = tabla[0];
@@ -227,13 +239,108 @@ function calcularPension(input) {
   };
 }
 
+/**
+ * Simula el efecto de pagar Modalidad 40 (Continuación Voluntaria en el Régimen Obligatorio)
+ * sobre el salario promedio de las últimas 250 semanas y, por lo tanto, sobre la pensión.
+ *
+ * IMPORTANTE — esto es una ESTIMACIÓN, no el cálculo exacto que hará el IMSS: el salario
+ * promedio real de las últimas 250 semanas depende de tu historial semana por semana (Salario
+ * Base de Cotización de cada periodo), que el IMSS reconstruye al momento del trámite. Aquí se
+ * aproxima asumiendo que, si vas a cotizar menos de 250 semanas en Modalidad 40, las semanas
+ * restantes hasta completar la ventana de 250 mantienen el salario promedio que ya capturaste.
+ * Es una referencia para decidir si conviene explorar Modalidad 40, no una cifra definitiva:
+ * antes de pagarla, confirma la proyección con el IMSS o un especialista en pensiones.
+ *
+ * @param {Object} input - mismos campos que calcularPension() (semanasCotizadas,
+ *   salarioDiarioPromedio, umaVigente, tieneEsposa, numHijos, numPadres, ramo, edad), más:
+ * @param {number} input.salarioDiarioM40 - Salario diario con el que se daría de alta en Modalidad 40.
+ * @param {number} input.semanasM40 - Número de semanas que planea cotizar en Modalidad 40.
+ * @param {number} [input.tasaM40] - Tasa de cuota mensual vigente (por defecto, la de 2026).
+ * @returns {Object} desglose de la simulación, incluyendo `pension` (mismo formato que calcularPension).
+ */
+function simularModalidad40(input) {
+  const {
+    semanasCotizadas,
+    salarioDiarioPromedio,
+    umaVigente,
+    salarioDiarioM40,
+    semanasM40,
+    tasaM40 = MODALIDAD_40_TASA_DEFAULT,
+  } = input;
+
+  if (!salarioDiarioPromedio || salarioDiarioPromedio <= 0) {
+    throw new Error('Falta tu salario diario promedio actual para poder comparar contra Modalidad 40.');
+  }
+  if (!semanasCotizadas || semanasCotizadas <= 0) {
+    throw new Error('Faltan tus semanas cotizadas actuales para poder comparar contra Modalidad 40.');
+  }
+  if (!salarioDiarioM40 || salarioDiarioM40 <= 0) {
+    throw new Error('Falta el salario diario con el que planeas darte de alta en Modalidad 40.');
+  }
+  if (!semanasM40 || semanasM40 <= 0) {
+    throw new Error('Falta el número de semanas que planeas cotizar en Modalidad 40.');
+  }
+  if (!umaVigente || umaVigente <= 0) {
+    throw new Error('Falta el valor vigente de la UMA.');
+  }
+
+  const advertencias = [];
+  const umaMin = MODALIDAD_40_UMA_MIN * umaVigente;
+  const umaMax = MODALIDAD_40_UMA_MAX * umaVigente;
+  let salarioAjustado = salarioDiarioM40;
+  if (salarioAjustado > umaMax) {
+    advertencias.push(`El salario que capturaste supera el tope legal de Modalidad 40 (25 UMA = $${umaMax.toFixed(2)}/día). Se usó el tope para el cálculo.`);
+    salarioAjustado = umaMax;
+  } else if (salarioAjustado < umaMin) {
+    advertencias.push(`El salario que capturaste está por debajo del mínimo de Modalidad 40 (1 UMA = $${umaMin.toFixed(2)}/día). Se usó el mínimo para el cálculo.`);
+    salarioAjustado = umaMin;
+  }
+
+  const semanasEnVentana = Math.min(semanasM40, MODALIDAD_40_VENTANA_SEMANAS);
+  const semanasRestantesVentana = MODALIDAD_40_VENTANA_SEMANAS - semanasEnVentana;
+  const salarioPromedioProyectado = semanasRestantesVentana === 0
+    ? salarioAjustado
+    : (semanasEnVentana * salarioAjustado + semanasRestantesVentana * salarioDiarioPromedio) / MODALIDAD_40_VENTANA_SEMANAS;
+
+  if (semanasM40 < MODALIDAD_40_VENTANA_SEMANAS) {
+    advertencias.push(`Vas a cotizar ${semanasM40} semana(s) en Modalidad 40 (menos de 250), así que se asumió que las ${semanasRestantesVentana} semana(s) restantes de la ventana de cálculo mantienen tu salario promedio actual. Tu historial real de esas semanas puede ser distinto.`);
+  }
+
+  const semanasCotizadasProyectadas = semanasCotizadas + semanasM40;
+
+  const pension = calcularPension({
+    ...input,
+    semanasCotizadas: semanasCotizadasProyectadas,
+    salarioDiarioPromedio: salarioPromedioProyectado,
+  });
+
+  const costoMensualEstimado = salarioAjustado * MODALIDAD_40_DIAS_MES * tasaM40;
+  const mesesM40 = semanasM40 / (SEMANAS_POR_ANIO / 12);
+  const costoTotalEstimado = costoMensualEstimado * mesesM40;
+
+  return {
+    salarioDiarioM40Ajustado: salarioAjustado,
+    salarioPromedioProyectado,
+    semanasCotizadasProyectadas,
+    pension,
+    costoMensualEstimado,
+    costoTotalEstimado,
+    tasaM40,
+    advertencias,
+  };
+}
+
 const PensionCalc = {
   calcularPension,
   calcularSalarioPromedio,
+  simularModalidad40,
   añosReconocidosPosteriores500Semanas,
   TABLA_CUANTIA_BASICA,
   TABLA_PORCENTAJE_EDAD_CESANTIA,
   TABLA_SEMANAS_RESIDUO,
+  MODALIDAD_40_UMA_MIN,
+  MODALIDAD_40_UMA_MAX,
+  MODALIDAD_40_TASA_DEFAULT,
 };
 
 // UMD: funciona con require() en Node y como <script> global en el navegador.

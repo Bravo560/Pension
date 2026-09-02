@@ -18,6 +18,14 @@
 
     <div id="error" class="error" style="display:none;"></div>
 
+    <div class="subseccion">
+      <label for="archivoReporte">¿Tienes tu Reporte de Semanas Cotizadas del IMSS en PDF? (opcional)</label>
+      <p class="nota">Si lo subes, intentamos leer tus semanas cotizadas y tu salario promedio automáticamente. Si no lo subes, o si no logramos leerlo, sigue capturando los datos manualmente abajo — siempre puedes revisar y corregir lo que se llene solo.</p>
+      <input type="file" id="archivoReporte" accept="application/pdf">
+      <p id="estadoArchivo" class="nota" style="display:none;"></p>
+      <p id="avisoArchivo" class="aviso" style="display:none;"></p>
+    </div>
+
     <label for="semanas">Semanas cotizadas totales</label>
     <input type="number" id="semanas" min="500" step="1" placeholder="Ej. 1726">
 
@@ -49,6 +57,22 @@
     <label for="padres">Padres dependientes (solo cuenta si no hay esposa(o) ni hijos)</label>
     <input type="number" id="padres" min="0" step="1" value="0">
 
+    <div class="subseccion">
+      <div class="checkbox-fila">
+        <input type="checkbox" id="activarM40">
+        <label for="activarM40" class="checkbox-label">¿Quieres ver cómo cambiaría tu pensión si pagas Modalidad 40?</label>
+      </div>
+      <p class="nota">Modalidad 40 te permite seguir cotizando por tu cuenta (sin patrón) a un salario más alto, entre 1 y 25 veces la UMA, para aumentar tu salario promedio y con eso tu pensión. Esto es una estimación para ayudarte a decidir — no sustituye una confirmación con el IMSS.</p>
+
+      <div id="camposM40" style="display:none;">
+        <label for="salarioM40">Salario diario con el que te darías de alta en Modalidad 40 ($)</label>
+        <input type="number" id="salarioM40" min="1" step="0.01" placeholder="Ej. 2000">
+
+        <label for="semanasM40">Semanas que planeas cotizar en Modalidad 40</label>
+        <input type="number" id="semanasM40" min="1" step="1" placeholder="Ej. 250">
+      </div>
+    </div>
+
     <button id="btnCalcular">Calcular proyección</button>
   </div>
 
@@ -62,6 +86,19 @@
     <p id="avisoTope" class="error" style="display:none;"></p>
     <p style="color:#6b7280; font-size:0.82rem; margin-top:16px;">
       Cálculo estimado con base en la Ley del Seguro Social de 1973, sujeto a verificación oficial del IMSS al momento de tu trámite.
+    </p>
+  </div>
+
+  <div class="tarjeta" id="resultadoM40" style="display:none;">
+    <h2>Con Modalidad 40</h2>
+    <div class="resultado-fila"><span>Pensión mensual sin Modalidad 40</span><span id="m40Sin"></span></div>
+    <div class="resultado-fila"><span>Pensión mensual proyectada con Modalidad 40</span><span id="m40Con"></span></div>
+    <div class="resultado-fila total"><span>Aumento mensual estimado</span><span id="m40Aumento"></span></div>
+    <div class="resultado-fila"><span>Costo mensual estimado de Modalidad 40</span><span id="m40Costo"></span></div>
+    <div class="resultado-fila"><span>Costo total estimado durante el periodo</span><span id="m40CostoTotal"></span></div>
+    <div id="m40Advertencias"></div>
+    <p style="color:#6b7280; font-size:0.82rem; margin-top:16px;">
+      Esta comparación es una ESTIMACIÓN: el salario promedio real de tus últimas 250 semanas depende de tu historial semana por semana, que el IMSS calcula al momento de tu trámite. Confirma con el IMSS o un especialista en pensiones antes de decidir pagar Modalidad 40.
     </p>
   </div>
 
@@ -85,10 +122,78 @@ document.getElementById('ramo').addEventListener('change', (e) => {
   document.getElementById('filaEdad').style.display = e.target.value === 'cesantia' ? 'block' : 'none';
 });
 
+document.getElementById('activarM40').addEventListener('change', (e) => {
+  document.getElementById('camposM40').style.display = e.target.checked ? 'block' : 'none';
+});
+
 document.getElementById('cerrarSesion').addEventListener('click', (e) => {
   e.preventDefault();
   sessionStorage.clear();
   window.location.href = '/login.html';
+});
+
+// --- Subir Reporte de Semanas Cotizadas (opcional) ---
+function archivoABase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1] || '');
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('archivoReporte').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  const estado = document.getElementById('estadoArchivo');
+  const aviso = document.getElementById('avisoArchivo');
+  aviso.style.display = 'none';
+  if (!file) return;
+
+  if (file.type !== 'application/pdf') {
+    aviso.textContent = 'Ese archivo no parece un PDF. Sube el Reporte de Semanas Cotizadas en formato PDF, o sigue capturando tus datos manualmente.';
+    aviso.style.display = 'block';
+    e.target.value = '';
+    return;
+  }
+
+  estado.style.display = 'block';
+  estado.textContent = 'Leyendo tu reporte...';
+
+  try {
+    const pdfBase64 = await archivoABase64(file);
+    const res = await fetch('/.netlify/functions/procesar-reporte-semanas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ pdfBase64 }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo leer el archivo.');
+
+    const detectados = [];
+    if (data.semanasCotizadas) {
+      document.getElementById('semanas').value = data.semanasCotizadas;
+      detectados.push(`${data.semanasCotizadas} semanas cotizadas`);
+    }
+    if (data.salarioDiarioPromedio) {
+      document.getElementById('salario').value = data.salarioDiarioPromedio;
+      detectados.push(`salario diario promedio de $${data.salarioDiarioPromedio}`);
+    }
+
+    if (detectados.length > 0) {
+      estado.textContent = `Detectamos en tu reporte: ${detectados.join(' y ')}. Revisa que sea correcto antes de calcular.`;
+    } else {
+      estado.textContent = 'No pudimos leer estos datos automáticamente de tu reporte. Captúralos manualmente abajo.';
+    }
+
+    if (data.advertencias && data.advertencias.length > 0) {
+      aviso.textContent = data.advertencias.join(' ');
+      aviso.style.display = 'block';
+    }
+  } catch (err) {
+    estado.textContent = 'No pudimos leer tu reporte automáticamente. Captura tus datos manualmente abajo.';
+    aviso.textContent = err.message;
+    aviso.style.display = 'block';
+  }
 });
 
 document.getElementById('btnCalcular').addEventListener('click', async () => {
@@ -105,6 +210,14 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
     ramo,
     edad: ramo === 'cesantia' ? Number(document.getElementById('edad').value) : 65,
   };
+
+  if (document.getElementById('activarM40').checked) {
+    const salarioM40 = Number(document.getElementById('salarioM40').value);
+    const semanasM40 = Number(document.getElementById('semanasM40').value);
+    if (salarioM40 > 0 && semanasM40 > 0) {
+      body.modalidad40 = { salarioDiarioM40: salarioM40, semanasM40 };
+    }
+  }
 
   const btn = document.getElementById('btnCalcular');
   btn.disabled = true;
@@ -134,6 +247,32 @@ document.getElementById('btnCalcular').addEventListener('click', async () => {
     }
 
     document.getElementById('resultado').style.display = 'block';
+
+    const bloqueM40 = document.getElementById('resultadoM40');
+    if (data.comparacionModalidad40) {
+      const c = data.comparacionModalidad40;
+      const sinM40 = data.mensual.pensionFinalConTope;
+      const conM40 = c.pension.mensual.pensionFinalConTope;
+      document.getElementById('m40Sin').textContent = fmt(sinM40);
+      document.getElementById('m40Con').textContent = fmt(conM40);
+      document.getElementById('m40Aumento').textContent = fmt(conM40 - sinM40);
+      document.getElementById('m40Costo').textContent = fmt(c.costoMensualEstimado);
+      document.getElementById('m40CostoTotal').textContent = fmt(c.costoTotalEstimado);
+
+      const advBox = document.getElementById('m40Advertencias');
+      advBox.innerHTML = '';
+      (c.advertencias || []).forEach((a) => {
+        const p = document.createElement('p');
+        p.className = 'aviso';
+        p.textContent = a;
+        advBox.appendChild(p);
+      });
+
+      bloqueM40.style.display = 'block';
+    } else {
+      bloqueM40.style.display = 'none';
+    }
+
     document.getElementById('resultado').scrollIntoView({ behavior: 'smooth' });
   } catch (err) {
     if (String(err.message).includes('venció') || String(err.message).includes('sesión')) {
