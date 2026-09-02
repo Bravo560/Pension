@@ -98,3 +98,37 @@ button:hover, .boton:hover { opacity: 0.92; }
 .checkbox-fila { display: flex; align-items: flex-start; gap: 10px; margin-top: 0; }
 .checkbox-fila input[type="checkbox"] { width: auto; margin-top: 4px; }
 .checkbox-label { display: inline; font-weight: 600; font-size: 0.9rem; margin: 0; }
+
+.contenedor-ancho { max-width: 1040px; }
+.dos-columnas { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) {
+  .dos-columnas { grid-template-columns: 1fr; }
+  .instructivo { position: static !important; }
+}
+.instructivo { position: sticky; top: 20px; }
+.instructivo h2 { font-size: 1.1rem; margin: 0 0 4px; }
+.instructivo h3 { font-size: 1rem; margin: 20px 0 10px; color: var(--verde); }
+.instructivo ol { padding-left: 22px; margin: 0; }
+.instructivo li { margin-bottom: 12px; font-size: 0.95rem; line-height: 1.6; }
+.instructivo .telefono {
+  display: block;
+  background: var(--verde-claro);
+  color: var(--verde);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  margin-top: 18px;
+  font-size: 0.95rem;
+  text-align: center;
+}
+.saltar-guia { display: inline-block; margin-top: 10px; font-size: 0.85rem; color: var(--verde); }
+.ayuda-campo {
+  background: #eef4fb;
+  border-left: 3px solid #3b82f6;
+  color: #1e3a5f;
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+  margin: 6px 0 4px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}

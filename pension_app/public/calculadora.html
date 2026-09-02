@@ -7,73 +7,119 @@
 <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-<div class="contenedor">
+<div class="contenedor contenedor-ancho">
   <div class="tarjeta" id="tarjetaVigencia" style="display:none;">
     <span class="badge" id="badgeVigencia"></span>
   </div>
 
-  <div class="tarjeta">
-    <h1>Tu proyección de pensión</h1>
-    <p class="subtitulo">Datos según tu Reporte de Semanas Cotizadas del IMSS.</p>
+  <div class="dos-columnas">
 
-    <div id="error" class="error" style="display:none;"></div>
+    <div class="tarjeta instructivo">
+      <h2>Guía para tramitar tu pensión</h2>
+      <p class="nota">Esta guía es informativa, para que sepas qué esperar. Los requisitos y documentos pueden cambiar — confírmalos siempre con el IMSS antes de tu cita.</p>
+      <a href="#formulario" class="saltar-guia">↓ Ir directo a la calculadora</a>
 
-    <div class="subseccion">
-      <label for="archivoReporte">¿Tienes tu Reporte de Semanas Cotizadas del IMSS en PDF? (opcional)</label>
-      <p class="nota">Si lo subes, intentamos leer tus semanas cotizadas y tu salario promedio automáticamente. Si no lo subes, o si no logramos leerlo, sigue capturando los datos manualmente abajo — siempre puedes revisar y corregir lo que se llene solo.</p>
-      <input type="file" id="archivoReporte" accept="application/pdf">
-      <p id="estadoArchivo" class="nota" style="display:none;"></p>
-      <p id="avisoArchivo" class="aviso" style="display:none;"></p>
+      <h3>Cómo tramitar tu pensión</h3>
+      <ol>
+        <li><strong>Reúne tus documentos:</strong> identificación oficial vigente con fotografía (INE, pasaporte o cédula profesional), CURP, acta de nacimiento, comprobante de domicilio reciente, estado de cuenta de tu Afore (no mayor a 6 meses), tu número de seguridad social (NSS) y una cuenta bancaria a tu nombre con CLABE para que te depositen la pensión. Si vas a registrar a tu esposa(o) o hijos, lleva también sus actas y su identificación.</li>
+        <li><strong>Saca copias</strong> de todos tus documentos — el IMSS pide el original para cotejar y una copia para su archivo.</li>
+        <li><strong>Pide tu cita:</strong> llama al <strong>800 623 2323</strong> (IMSS Orienta) o acude directamente a la Subdelegación del IMSS que te corresponda y pregunta por el módulo de "Trámite de pensiones". Ahí te dirán si puedes agendar por internet.</li>
+        <li><strong>El día de tu cita</strong>, entrega tus documentos y firma tu "Solicitud de Pensión". Ahí eliges el régimen de tu pensión (1973 o 1997) si tienes derecho a elegir.</li>
+        <li>El IMSS te dice <strong>cuánto tiempo tardará</strong> en resolver tu trámite y cuándo debes volver por tu resolución.</li>
+        <li>Cuando te entreguen tu <strong>resolución aprobada</strong>, empiezan los depósitos de tu pensión en la cuenta que registraste.</li>
+      </ol>
+      <p class="nota">El monto que te dé esta calculadora es un estimado para orientarte — el monto final lo determina el IMSS con base en tu expediente completo.</p>
+
+      <h3>Cómo tramitar Modalidad 40</h3>
+      <ol>
+        <li><strong>Verifica que cumples los requisitos:</strong> haber cotizado al menos 52 semanas ante el IMSS en los últimos 5 años, y que no hayan pasado más de 5 años desde tu fecha de baja (cuando dejaste de trabajar).</li>
+        <li><strong>Reúne tus documentos:</strong> CURP, número de seguridad social (NSS), identificación oficial vigente, comprobante de domicilio reciente y un correo electrónico (el IMSS lo pide para el trámite, aunque no lo uses seguido).</li>
+        <li><strong>Inscríbete</strong> de alguna de estas dos formas:
+          <ul style="margin:6px 0 0; padding-left:18px;">
+            <li>En línea: en el portal del IMSS, sección de trámites para "derechohabientes, pensionados y público en general", busca "Continuación Voluntaria en el Régimen Obligatorio" (así se llama oficialmente Modalidad 40).</li>
+            <li>En persona: en la Subdelegación del IMSS que te corresponda, con tus documentos y una solicitud por escrito.</li>
+          </ul>
+        </li>
+        <li><strong>Elige tu salario diario</strong> de alta (entre 1 y 25 veces la UMA) — usa el simulador de Modalidad 40 de esta calculadora para ver cómo cambiaría tu pensión antes de decidir.</li>
+        <li>El IMSS te entrega tu <strong>formato de pago</strong> (línea de captura). Puedes pagar mensual, bimestral o de forma anual adelantada, en bancos autorizados o por medios electrónicos del IMSS.</li>
+        <li><strong>Guarda todos tus comprobantes de pago</strong> — te los van a pedir cuando tramites tu pensión.</li>
+      </ol>
+
+      <span class="telefono">📞 IMSS Orienta: 800 623 2323</span>
     </div>
 
-    <label for="semanas">Semanas cotizadas totales</label>
-    <input type="number" id="semanas" min="500" step="1" placeholder="Ej. 1726">
+    <div class="tarjeta">
+      <h1 id="formulario">Tu proyección de pensión</h1>
+      <p class="subtitulo">Llena estos datos según tu Reporte de Semanas Cotizadas del IMSS. Si algún dato no lo tienes a la mano, la guía junto a cada campo te dice dónde encontrarlo.</p>
 
-    <label for="salario">Salario diario promedio de las últimas 250 semanas ($)</label>
-    <input type="number" id="salario" min="1" step="0.01" placeholder="Ej. 911.06">
+      <div id="error" class="error" style="display:none;"></div>
 
-    <label for="ramo">¿Qué pensión quieres proyectar?</label>
-    <select id="ramo">
-      <option value="cesantia">Cesantía en Edad Avanzada (60 a 64 años)</option>
-      <option value="vejez">Vejez (65 años)</option>
-    </select>
+      <div class="subseccion">
+        <label for="archivoReporte">¿Tienes tu Reporte de Semanas Cotizadas del IMSS en PDF? (opcional)</label>
+        <p class="nota">Si lo subes, intentamos leer tus semanas cotizadas y tu salario promedio automáticamente. Si no lo subes, o si no logramos leerlo, sigue capturando los datos manualmente abajo — siempre puedes revisar y corregir lo que se llene solo.</p>
+        <input type="file" id="archivoReporte" accept="application/pdf">
+        <p id="estadoArchivo" class="nota" style="display:none;"></p>
+        <p id="avisoArchivo" class="aviso" style="display:none;"></p>
+      </div>
 
-    <div id="filaEdad">
-      <label for="edad">Edad al momento de pensionarte (60 a 64)</label>
-      <input type="number" id="edad" min="60" max="64" step="1" value="60">
+      <label for="semanas">Semanas cotizadas totales</label>
+      <p class="ayuda-campo">Es el número total de semanas que trabajaste dado de alta en el IMSS durante toda tu vida laboral. La encuentras en tu Reporte de Semanas Cotizadas (puedes subirlo arriba), o te la puede dar el IMSS en su módulo de atención.</p>
+      <input type="number" id="semanas" min="500" step="1" placeholder="Ej. 1726">
+
+      <label for="salario">Salario diario promedio de las últimas 250 semanas ($)</label>
+      <p class="ayuda-campo">Es el promedio de tu sueldo diario registrado ante el IMSS durante tus últimas 250 semanas trabajadas (aprox. los últimos 4 años y 10 meses). Aparece en el Reporte de Semanas Cotizadas con detalle de movimientos, o te lo puede calcular el IMSS al momento de tu trámite.</p>
+      <input type="number" id="salario" min="1" step="0.01" placeholder="Ej. 911.06">
+
+      <label for="ramo">¿Qué pensión quieres proyectar?</label>
+      <p class="ayuda-campo">Elige "Cesantía en Edad Avanzada" si vas a pensionarte entre los 60 y los 64 años. Elige "Vejez" si vas a pensionarte a los 65 años o más.</p>
+      <select id="ramo">
+        <option value="cesantia">Cesantía en Edad Avanzada (60 a 64 años)</option>
+        <option value="vejez">Vejez (65 años)</option>
+      </select>
+
+      <div id="filaEdad">
+        <label for="edad">Edad al momento de pensionarte (60 a 64)</label>
+        <input type="number" id="edad" min="60" max="64" step="1" value="60">
+      </div>
+
+      <div class="fila">
+        <div>
+          <label for="esposa">¿Tienes esposa(o) dependiente?</label>
+          <p class="ayuda-campo">Marca "Sí" si tienes esposa o esposo que dependa económicamente de ti (que no trabaje, o gane menos del salario mínimo). El IMSS pedirá tu acta de matrimonio para comprobarlo.</p>
+          <select id="esposa"><option value="no">No</option><option value="si">Sí</option></select>
+        </div>
+        <div>
+          <label for="hijos">Hijos menores de 16 (o hasta 25 si estudian)</label>
+          <p class="ayuda-campo">Cuenta a tus hijos menores de 16 años, o hasta 25 años si siguen estudiando y dependen económicamente de ti.</p>
+          <input type="number" id="hijos" min="0" step="1" value="0">
+        </div>
+      </div>
+
+      <label for="padres">Padres dependientes (solo cuenta si no hay esposa(o) ni hijos)</label>
+      <p class="ayuda-campo">Solo cuenta a tus padres aquí si NO tienes esposa(o) ni hijos que cumplan lo de arriba, y si tus padres dependen económicamente de ti.</p>
+      <input type="number" id="padres" min="0" step="1" value="0">
+
+      <div class="subseccion">
+        <div class="checkbox-fila">
+          <input type="checkbox" id="activarM40">
+          <label for="activarM40" class="checkbox-label">¿Quieres ver cómo cambiaría tu pensión si pagas Modalidad 40?</label>
+        </div>
+        <p class="nota">Modalidad 40 te permite seguir cotizando por tu cuenta (sin patrón) a un salario más alto, entre 1 y 25 veces la UMA, para aumentar tu salario promedio y con eso tu pensión. Esto es una estimación para ayudarte a decidir — no sustituye una confirmación con el IMSS. En la guía de la izquierda explicamos cómo tramitarla.</p>
+
+        <div id="camposM40" style="display:none;">
+          <label for="salarioM40">Salario diario con el que te darías de alta en Modalidad 40 ($)</label>
+          <p class="ayuda-campo">Entre más alto el salario que elijas (dentro del rango permitido de 1 a 25 veces la UMA), mayor será tu pensión proyectada — pero también pagarás más cada mes.</p>
+          <input type="number" id="salarioM40" min="1" step="0.01" placeholder="Ej. 2000">
+
+          <label for="semanasM40">Semanas que planeas cotizar en Modalidad 40</label>
+          <p class="ayuda-campo">El número de semanas que planeas seguir pagando Modalidad 40 antes de pensionarte.</p>
+          <input type="number" id="semanasM40" min="1" step="1" placeholder="Ej. 250">
+        </div>
+      </div>
+
+      <button id="btnCalcular">Calcular proyección</button>
     </div>
 
-    <div class="fila">
-      <div>
-        <label for="esposa">¿Tienes esposa(o) dependiente?</label>
-        <select id="esposa"><option value="no">No</option><option value="si">Sí</option></select>
-      </div>
-      <div>
-        <label for="hijos">Hijos menores de 16 (o hasta 25 si estudian)</label>
-        <input type="number" id="hijos" min="0" step="1" value="0">
-      </div>
-    </div>
-
-    <label for="padres">Padres dependientes (solo cuenta si no hay esposa(o) ni hijos)</label>
-    <input type="number" id="padres" min="0" step="1" value="0">
-
-    <div class="subseccion">
-      <div class="checkbox-fila">
-        <input type="checkbox" id="activarM40">
-        <label for="activarM40" class="checkbox-label">¿Quieres ver cómo cambiaría tu pensión si pagas Modalidad 40?</label>
-      </div>
-      <p class="nota">Modalidad 40 te permite seguir cotizando por tu cuenta (sin patrón) a un salario más alto, entre 1 y 25 veces la UMA, para aumentar tu salario promedio y con eso tu pensión. Esto es una estimación para ayudarte a decidir — no sustituye una confirmación con el IMSS.</p>
-
-      <div id="camposM40" style="display:none;">
-        <label for="salarioM40">Salario diario con el que te darías de alta en Modalidad 40 ($)</label>
-        <input type="number" id="salarioM40" min="1" step="0.01" placeholder="Ej. 2000">
-
-        <label for="semanasM40">Semanas que planeas cotizar en Modalidad 40</label>
-        <input type="number" id="semanasM40" min="1" step="1" placeholder="Ej. 250">
-      </div>
-    </div>
-
-    <button id="btnCalcular">Calcular proyección</button>
   </div>
 
   <div class="tarjeta" id="resultado" style="display:none;">
