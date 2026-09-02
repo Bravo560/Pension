@@ -128,7 +128,21 @@ exports.handler = async (event) => {
     return { statusCode: 200, body: 'acceso creado y correo enviado' };
   } catch (err) {
     console.error('mp-webhook error:', err);
-    // 500 para que Mercado Pago reintente la notificación más tarde.
+
+    // El botón "Simular notificaciones" del panel de Mercado Pago siempre manda un id de pago
+    // de prueba (normalmente "123456") que NO existe de verdad en tu cuenta. Al buscarlo en la
+    // API, Mercado Pago responde "no encontrado" — eso no es un error real de tu servidor (con
+    // un pago real, el id sí existe y esta búsqueda funciona sin problema), así que respondemos
+    // 200 en ese caso para no reportarlo como falla.
+    const pareceNoEncontrado =
+      err?.status === 404 ||
+      /404|not[_ ]?found/i.test(String(err?.message || '')) ||
+      (Array.isArray(err?.cause) && err.cause.some((c) => /not[_ ]?found/i.test(String(c?.code || c?.description || ''))));
+    if (pareceNoEncontrado) {
+      return { statusCode: 200, body: 'notificación de prueba (el pago no existe en tu cuenta), sin acción' };
+    }
+
+    // 500 para que Mercado Pago reintente la notificación más tarde (esto sí es un error real).
     return { statusCode: 500, body: 'error interno' };
   }
 };
