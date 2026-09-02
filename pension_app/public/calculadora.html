@@ -107,9 +107,11 @@
         <p class="nota">Modalidad 40 te permite seguir cotizando por tu cuenta (sin patrón) a un salario más alto, entre 1 y 25 veces la UMA, para aumentar tu salario promedio y con eso tu pensión. Esto es una estimación para ayudarte a decidir — no sustituye una confirmación con el IMSS. En la guía de la izquierda explicamos cómo tramitarla.</p>
 
         <div id="camposM40" style="display:none;">
-          <label for="salarioM40">Salario diario con el que te darías de alta en Modalidad 40 ($)</label>
-          <p class="ayuda-campo">Entre más alto el salario que elijas (dentro del rango permitido de 1 a 25 veces la UMA), mayor será tu pensión proyectada — pero también pagarás más cada mes.</p>
-          <input type="number" id="salarioM40" min="1" step="0.01" placeholder="Ej. 2000">
+          <label for="salarioM40">Salario diario con el que te darías de alta en Modalidad 40</label>
+          <p class="ayuda-campo">Elige de la lista el salario diario de cotización (la ley permite entre 1 y 25 veces la UMA vigente). Entre más alto elijas, mayor será tu pensión proyectada — pero también pagarás más cada mes. Ojo: esto NO es lo que pagas al mes, es la base con la que se calcula tu pensión; la cuota mensual que sí pagas aparece más abajo, en el resultado, después de calcular.</p>
+          <select id="salarioM40">
+            <option value="" selected>Selecciona un salario diario...</option>
+          </select>
 
           <label for="semanasM40">Semanas que planeas cotizar en Modalidad 40</label>
           <p class="ayuda-campo">El número de semanas que planeas seguir pagando Modalidad 40 antes de pensionarte.</p>
@@ -140,8 +142,8 @@
     <div class="resultado-fila"><span>Pensión mensual sin Modalidad 40</span><span id="m40Sin"></span></div>
     <div class="resultado-fila"><span>Pensión mensual proyectada con Modalidad 40</span><span id="m40Con"></span></div>
     <div class="resultado-fila total"><span>Aumento mensual estimado</span><span id="m40Aumento"></span></div>
-    <div class="resultado-fila"><span>Costo mensual estimado de Modalidad 40</span><span id="m40Costo"></span></div>
-    <div class="resultado-fila"><span>Costo total estimado durante el periodo</span><span id="m40CostoTotal"></span></div>
+    <div class="resultado-fila"><span>Cuota mensual que pagarías por tu cuenta</span><span id="m40Costo"></span></div>
+    <div class="resultado-fila"><span>Total aproximado que pagarías durante todo el periodo</span><span id="m40CostoTotal"></span></div>
     <div id="m40Advertencias"></div>
     <p style="color:#6b7280; font-size:0.82rem; margin-top:16px;">
       Esta comparación es una ESTIMACIÓN: el salario promedio real de tus últimas 250 semanas depende de tu historial semana por semana, que el IMSS calcula al momento de tu trámite. Confirma con el IMSS o un especialista en pensiones antes de decidir pagar Modalidad 40.
@@ -171,6 +173,37 @@ document.getElementById('ramo').addEventListener('change', (e) => {
 document.getElementById('activarM40').addEventListener('change', (e) => {
   document.getElementById('camposM40').style.display = e.target.checked ? 'block' : 'none';
 });
+
+// --- Llena la lista de salarios de Modalidad 40 (1 a 25 veces la UMA vigente, en pesos) ---
+async function cargarOpcionesM40() {
+  const select = document.getElementById('salarioM40');
+  try {
+    const res = await fetch('/.netlify/functions/config', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cargar la lista.');
+
+    const uma = data.umaVigente;
+    const min = data.modalidad40UmaMin || 1;
+    const max = data.modalidad40UmaMax || 25;
+    select.innerHTML = '<option value="" selected>Selecciona un salario diario...</option>';
+    for (let veces = min; veces <= max; veces++) {
+      const pesos = uma * veces;
+      const opt = document.createElement('option');
+      opt.value = pesos.toFixed(2);
+      const etiquetaVeces = veces === 1 ? '1 vez la UMA' : `${veces} veces la UMA`;
+      const sufijo = veces === max ? ' (máximo permitido)' : veces === min ? ' (mínimo permitido)' : '';
+      opt.textContent = `${etiquetaVeces} — $${pesos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pesos diarios${sufijo}`;
+      select.appendChild(opt);
+    }
+  } catch (err) {
+    // Si no se pudo cargar la lista (ej. sesión vencida), se deja el select con un solo aviso;
+    // el resto de la calculadora sigue funcionando igual.
+    select.innerHTML = '<option value="">No se pudo cargar la lista, intenta recargar la página</option>';
+  }
+}
+cargarOpcionesM40();
 
 document.getElementById('cerrarSesion').addEventListener('click', (e) => {
   e.preventDefault();
