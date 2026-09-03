@@ -60,13 +60,16 @@ exports.handler = async (event) => {
       },
     });
 
-    // Con credenciales de PRUEBA (Access Token que empieza con TEST-), Mercado Pago devuelve
-    // dos URLs distintas: "init_point" (checkout de producción) y "sandbox_init_point"
-    // (checkout de pruebas). Si usamos init_point mientras probamos, Mercado Pago rechaza el
-    // pago con el error "una de las partes es de prueba" — por eso preferimos sandbox_init_point
-    // cuando existe. Con credenciales de producción, Mercado Pago no manda un sandbox_init_point
-    // utilizable, así que ahí se usa init_point normalmente.
-    const checkoutUrl = result.sandbox_init_point || result.init_point;
+    // Mercado Pago puede incluir "sandbox_init_point" en la respuesta incluso usando
+    // credenciales de producción, así que NO podemos decidir con base en qué campos vengan en
+    // la respuesta (eso fue justo el bug: con MP_ACCESS_TOKEN de producción nos seguía mandando
+    // al checkout de sandbox). En vez de eso, decidimos según el propio token que configuramos:
+    // si es de prueba (empieza con "TEST-") usamos sandbox_init_point; si es de producción
+    // (empieza con "APP_USR-") usamos siempre init_point, sin importar qué más venga en la respuesta.
+    const esCredencialDePrueba = accessToken.startsWith('TEST-');
+    const checkoutUrl = esCredencialDePrueba
+      ? (result.sandbox_init_point || result.init_point)
+      : result.init_point;
 
     return {
       statusCode: 200,
