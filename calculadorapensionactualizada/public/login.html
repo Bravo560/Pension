@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iniciar sesión</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<div class="contenedor">
+  <div class="tarjeta">
+    <h1>Iniciar sesión</h1>
+    <p class="subtitulo">Usa el usuario y contraseña que recibiste por correo.</p>
+
+    <div id="error" class="error" style="display:none;"></div>
+
+    <label for="username">Usuario</label>
+    <input type="text" id="username" autocomplete="username" required>
+
+    <label for="password">Contraseña</label>
+    <input type="password" id="password" autocomplete="current-password" required>
+
+    <button id="btnEntrar">Entrar</button>
+  </div>
+
+  <div class="tarjeta">
+    <h2>¿Aún no tienes acceso?</h2>
+    <a class="boton" style="background:#fff; color:#0a5c36; border:1px solid #0a5c36;" href="/index.html">Suscribirme</a>
+  </div>
+</div>
+
+<script>
+const btn = document.getElementById('btnEntrar');
+const errorBox = document.getElementById('error');
+
+btn.addEventListener('click', async () => {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  errorBox.style.display = 'none';
+  if (!username || !password) {
+    errorBox.textContent = 'Escribe tu usuario y contraseña.';
+    errorBox.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+  try {
+    const res = await fetch('/.netlify/functions/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo iniciar sesión.');
+    sessionStorage.setItem('token', data.token);
+    sessionStorage.setItem('expiresAt', data.expiresAt);
+    window.location.href = '/calculadora.html';
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+});
+</script>
+</body>
+</html>
